@@ -1,11 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import './App.css';
-import { FaMusic } from 'react-icons/fa';
-import { ImVideoCamera } from "react-icons/im";
-import { BsDisplay, BsBook } from "react-icons/bs";
-
-import Card from './components/card/Card';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import Card from "./components/card/Card";
 
 // api GET calls + .env api keys
 const MOVIE_API_KEY = process.env.REACT_APP_MOVIE_KEY;
@@ -18,15 +13,14 @@ const BOOK_API_URL = `https://api.nytimes.com/svc/books/v3/lists/current/combine
 const MUSIC_API_KEY = process.env.REACT_APP_MUSIC_KEY;
 const MUSIC_API_URL = `https://ws.audioscrobbler.com/2.0/?method=chart.gettoptracks&api_key=${MUSIC_API_KEY}&format=json`;
 
-
 const App = () => {
   //setState
-  const [movieTitle, setMovieTitle] = useState('');
-  const [tvTitle, setTvTitle] = useState('');
-  const [bookTitle, setBookTitle] = useState('');
-  const [musicInfo, setMusicInfo] = useState({title:'', artist:''});
+  const [movieTitle, setMovieTitle] = useState("");
+  const [tvTitle, setTvTitle] = useState("");
+  const [bookTitle, setBookTitle] = useState("");
+  const [musicInfo, setMusicInfo] = useState({ track: "", artist: "" });
 
-  // get a random book/movie from a object of 20 results
+  // get a random book/movie from a object of 15 results
   const randomNumber = Math.floor(Math.random() * 15) + 0;
 
   const fetchData = () => {
@@ -37,33 +31,60 @@ const App = () => {
     const getMusicApi = axios.get(MUSIC_API_URL);
 
     // spread data + drill into object for relevent info
-    axios.all([getMovieApi, getTvApi, getBookApi, getMusicApi]).then(
+    axios.all([getMovieApi, getTvApi, getBookApi, getMusicApi])
+    .catch(err => {
+      if (err.response) {
+        // client received an error response (5xx, 4xx)
+      } else if (err.request) {
+        // client never received a response, or request never left
+      } else {
+        // anything else
+      }
+  })
+    .then(
       axios.spread((...allData) => {
         const allMovieData = allData[0].data.results[randomNumber].title;
         const allTvData = allData[1].data.results[randomNumber].name;
         const allBookData = allData[2].data.results.books[randomNumber].title;
-        const allMusicData = {track: allData[3].data.tracks.track[randomNumber].name, artist: allData[3].data.tracks.track[randomNumber].artist.name};
+        const allMusicData = {
+          track: allData[3].data.tracks.track[randomNumber].name,
+          artist: allData[3].data.tracks.track[randomNumber].artist.name,
+        };
 
         setMovieTitle(allMovieData);
-        setTvTitle(allTvData)
+        setTvTitle(allTvData);
         setBookTitle(allBookData);
-        setMusicInfo(allMusicData)
+        setMusicInfo(allMusicData);
       })
     );
+    
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
+
+  // convert book result in Title Case
+  const toTitleCase = (phrase) => {
+    return phrase
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  let book = toTitleCase(bookTitle);
+
   return (
     <div className="App">
-      <div><FaMusic /> {musicInfo.track} - {musicInfo.artist}</div>
-      <div><ImVideoCamera /> {movieTitle}</div>
-      <div><BsDisplay /> {tvTitle}</div>
-      <div><BsBook /> {bookTitle}</div>
-
-      <Card />
+      <Card
+        track={musicInfo.track}
+        artist={musicInfo.artist}
+        movie={movieTitle}
+        tv={tvTitle}
+        book={book}
+      />
     </div>
   );
 };
